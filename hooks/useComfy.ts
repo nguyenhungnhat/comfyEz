@@ -1,10 +1,9 @@
 
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppSettings, GenerationParams, QueueItem, HistoryItem, CanvasImage } from '../types';
 import { generateClientId, queuePrompt, getHistory, getImageUrl, uploadImage } from '../services/comfyService';
 import { constructWorkflow, dataURLtoFile } from '../utils';
-import { saveHistoryItem, getAllHistory, deleteHistoryItemDB, saveQueueDB, loadQueueDB } from '../services/db';
+import { saveHistoryItem, getAllHistory, deleteHistoryItemDB, saveQueueDB, loadQueueDB, updateLoraMetadataDB, getAllLorasDB } from '../services/db';
 
 export const useComfy = (settings: AppSettings, addToCurrent: boolean) => {
     // --- State ---
@@ -54,6 +53,76 @@ export const useComfy = (settings: AppSettings, addToCurrent: boolean) => {
         setQueue(prev => prev.map(item => 
             item.id === id ? { ...item, status, error } : item
         ));
+    };
+
+    // Helper to update LoRA usage
+    const updateLoraStats = async (params: GenerationParams, imageUrl: string) => {
+        if (!params.loras || params.loras.length === 0) return;
+        
+        let base64Image = "";
+        try {
+            // Ensure URL is absolute for fetch
+            const fetchUrl = imageUrl.startsWith('http') ? imageUrl : `${settings.host.replace(/\/$/, '')}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+            
+            const response = await fetch(fetchUrl);
+            const blob = await response.blob();
+            
+            // Resize image before saving to IDB to prevent quota exceeded
+            base64Image = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Thumbnail size
+                    const MAX_WIDTH = 256;
+                    const scale = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scale;
+                    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.src = URL.createObjectURL(blob);
+            });
+        } catch(e) {
+            console.warn("Could not process image for LoRA stats", e);
+        }
+
+        const allLoras = await getAllLorasDB();
+        const loraMap = new Map(allLoras.map(l => [l.name, l]));
+        const now = Date.now();
+        const enabledLoras = params.loras.filter(l => l.enabled);
+
+        let hasUpdates = false;
+        for (const lora of enabledLoras) {
+            const currentMeta = loraMap.get(lora.name);
+            
+            const updates: any = {
+                name: lora.name,
+                lastUsed: now,
+                // Preserve existing or set defaults
+                triggerKey: currentMeta?.triggerKey,
+                isFavorite: currentMeta?.isFavorite,
+                category: currentMeta?.category
+            };
+
+            // Only set preview image if one doesn't exist OR if user wants auto-update (optional logic, here we set if missing)
+            if (!currentMeta?.previewImage && base64Image) {
+                updates.previewImage = base64Image;
+            } else {
+                updates.previewImage = currentMeta?.previewImage;
+            }
+            
+            // If ID exists in DB use it, otherwise use current session ID (or name as fallback key)
+            if (currentMeta?.id) updates.id = currentMeta.id;
+
+            await updateLoraMetadataDB(updates);
+            hasUpdates = true;
+        }
+
+        if (hasUpdates) {
+            // Notify UI to refresh library
+            window.dispatchEvent(new Event('lora-metadata-changed'));
+        }
     };
 
     // --- Core Logic ---
@@ -152,6 +221,9 @@ export const useComfy = (settings: AppSettings, addToCurrent: boolean) => {
                         // Async add to history
                         newCanvasImages.forEach(img => addToHistory(img.url, item.params));
                         
+                        // Update LoRA Stats (use first image)
+                        updateLoraStats(item.params, newCanvasImages[0].url);
+
                         setIsProcessing(false);
                         setProcessingError(null);
                         setQueue(prev => prev.filter(q => q.id !== item.id)); // Remove done item

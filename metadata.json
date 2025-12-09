@@ -1,5 +1,5 @@
 {
   "name": "ComfyEz",
-  "description": "A modern, persistent interface for interacting with a local ComfyUI instance.",
+  "description": "A modern, persistent interface for interacting with a local ComfyUI instance using a specific SD3 workflow.",
   "requestFramePermissions": []
 }

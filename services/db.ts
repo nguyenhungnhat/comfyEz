@@ -1,14 +1,17 @@
 
-import { HistoryItem, GenerationParams, QueueItem } from "../types";
+
+import { HistoryItem, GenerationParams, QueueItem, Lora } from "../types";
 
 const DB_NAME = "ComfyPlaygroundDB";
 const STORE_NAME_HISTORY = "history";
 const STORE_NAME_SESSION = "session"; // For current params
 const STORE_NAME_QUEUE = "queue";
+const STORE_NAME_LORAS = "loras"; // New store for metadata
+
 const KEY_PARAMS = "current_params";
 const KEY_QUEUE = "current_queue";
 
-const VERSION = 2; // Increment version for new stores
+const VERSION = 3; // Increment version for new stores
 
 export const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -27,6 +30,11 @@ export const openDB = (): Promise<IDBDatabase> => {
 
       if (!db.objectStoreNames.contains(STORE_NAME_QUEUE)) {
           db.createObjectStore(STORE_NAME_QUEUE);
+      }
+
+      if (!db.objectStoreNames.contains(STORE_NAME_LORAS)) {
+          // Key path is the LoRA name (filename) as it's unique in ComfyUI
+          db.createObjectStore(STORE_NAME_LORAS, { keyPath: "name" });
       }
     };
 
@@ -136,6 +144,31 @@ export const loadQueueDB = async (): Promise<QueueItem[]> => {
         const store = transaction.objectStore(STORE_NAME_QUEUE);
         const request = store.get(KEY_QUEUE);
         request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+// --- LoRA Metadata ---
+
+export const getAllLorasDB = async (): Promise<Lora[]> => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME_LORAS], "readonly");
+        const store = transaction.objectStore(STORE_NAME_LORAS);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const updateLoraMetadataDB = async (lora: Lora) => {
+    const db = await openDB();
+    return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME_LORAS], "readwrite");
+        const store = transaction.objectStore(STORE_NAME_LORAS);
+        // We only persist the metadata fields + name (key)
+        const request = store.put(lora);
+        request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
     });
 };

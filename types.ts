@@ -32,6 +32,12 @@ export interface Lora {
   name: string;
   strength: number;
   enabled: boolean;
+  // Metadata
+  previewImage?: string; // Base64
+  triggerKey?: string;
+  isFavorite?: boolean;
+  category?: string;
+  lastUsed?: number;
 }
 
 export interface ComfyNode {
