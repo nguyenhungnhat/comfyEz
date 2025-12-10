@@ -19,6 +19,7 @@ interface ImageCanvasProps {
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   onRemoveHistory: (id: string) => void;
+  onClearHistory: () => void;
   onSelectHistory: (item: HistoryItem) => void;
   settings: AppSettings;
   queue: QueueItem[];
@@ -41,6 +42,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({
   history,
   setHistory,
   onRemoveHistory,
+  onClearHistory,
   onSelectHistory,
   settings,
   queue,
@@ -102,6 +104,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({
              <button
                  onClick={() => setActiveTab('history')}
                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeTab === 'history' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}
+                 id="history-tab-btn"
              >
                  History
              </button>
@@ -132,6 +135,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({
             isActive={activeTab === 'history'}
             history={history}
             onDeleteHistory={onRemoveHistory}
+            onClearHistory={onClearHistory}
             onSelect={restoreHistoryItem}
             onOpenModal={setSelectedHistoryItem}
         />

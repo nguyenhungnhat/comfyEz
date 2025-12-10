@@ -1,19 +1,24 @@
-
-
+import OpenAI from 'openai';
 import { Variant } from "../types";
 import { VARIANT_ICONS } from "../constants";
-import OpenAI from 'openai';
+
+// Helper to create OpenAI client
+const createClient = (host: string, apiKey: string) => {
+    return new OpenAI({
+        baseURL: host.replace(/\/$/, ''),
+        apiKey: apiKey || 'dummy', // SDK requires key, even if not used by backend (e.g. local)
+        dangerouslyAllowBrowser: true,
+    });
+};
 
 export const fetchLLMModels = async (host: string, apiKey: string) => {
-    const url = `${host.replace(/\/$/, '')}/models`;
-    const headers: Record<string, string> = {};
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-
+    const client = createClient(host, apiKey);
     try {
-        const response = await fetch(url, { headers });
-        if (!response.ok) throw new Error("Failed to fetch models");
-        const data = await response.json();
-        return data.data || [];
+        const list = await client.models.list();
+        return list.data.map((m: any) => ({
+            id: m.id,
+            name: m.name || m.id
+        }));
     } catch (e) {
         console.error("LLM fetch models error:", e);
         throw e;
@@ -28,21 +33,10 @@ export const generateVariants = async (
     singleMode: boolean = false,
     customSystemPrompt?: string
 ): Promise<Variant[]> => {
-    const url = `${host.replace(/\/$/, '')}/chat/completions`;
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-    };
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-    if (host.includes("openrouter.ai")) {
-         headers['HTTP-Referer'] = window.location.origin;
-         headers['X-Title'] = "ComfyEz";
-    }
-
+    const client = createClient(host, apiKey);
     const availableIcons = VARIANT_ICONS.join(', ');
 
-    // Use custom system prompt if provided, otherwise default
     let systemPrompt = customSystemPrompt;
-    
     if (!systemPrompt) {
         systemPrompt = `
         You are an AI assistant for an image generation tool. 
@@ -50,6 +44,7 @@ export const generateVariants = async (
         
         Each variant should have:
         - 'title': The name of the variant category (e.g., "Lighting", "Style").
+        - 'category': A high-level group name (e.g., "Visuals", "Tech").
         - 'options': A list of options. Each option can be a simple string OR an object with fields:
             - 'name': The option text (lowercase).
             - 'emoji': A relevant emoji char (optional).
@@ -60,7 +55,8 @@ export const generateVariants = async (
         {
           "variants": [
             { 
-                "title": "Variant Name", 
+                "title": "Neon Lighting", 
+                "category": "Lighting",
                 "options": [
                     "opt1", 
                     { "name": "opt2", "emoji": "🔥", "description": "This is a description" }
@@ -73,35 +69,21 @@ export const generateVariants = async (
         `;
     }
 
-    // Append mode instruction to user message to keep system prompt clean/reusable
     const modeInstruction = singleMode 
         ? "Generate ONLY ONE distinct variant category." 
         : "Generate a list of distinct variant categories.";
 
-    const body = {
-        model: model,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `${userPrompt}\n\n${modeInstruction}` }
-        ],
-        temperature: 0.7
-    };
-
     try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body)
+        const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `${userPrompt}\n\n${modeInstruction}` }
+            ],
+            temperature: 0.7
         });
 
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`LLM Error: ${err}`);
-        }
-
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        
+        const content = response.choices[0]?.message?.content;
         if (!content) throw new Error("No content received from LLM");
 
         const cleanJson = content.replace(/```json\n?|```/g, '').trim();
@@ -114,14 +96,134 @@ export const generateVariants = async (
         return parsed.variants.map((v: any) => ({
             id: Math.random().toString(36).substring(7),
             title: v.title,
+            category: v.category || "General",
             options: v.options,
-            selected: [],
+            selected: [], // Initially empty, user selects
             customPrompt: "",
             icon: v.icon || "Sparkles"
         }));
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("LLM Generation Error:", e);
+        throw new Error(`LLM Error: ${e.message || e}`);
+    }
+};
+
+export const DEFAULT_EXTRACT_VARIANTS_PROMPT = `
+You are an expert prompt analyzer. Your task is to deconstruct the provided image generation prompt into structured variant categories.
+
+Input Prompt: "Cyberpunk city with neon lights, rain, 8k resolution, cinematic lighting"
+
+Desired Output Structure (JSON):
+{
+  "variants": [
+    { 
+      "title": "Cyberpunk Style",
+      "category": "Style",
+      "icon": "Zap",
+      "options": [
+          { "name": "cyberpunk", "emoji": "🏙️" }
+      ],
+      "selected": ["cyberpunk"]
+    },
+    { 
+      "title": "Atmosphere",
+      "category": "Environment",
+      "icon": "Sun",
+      "options": [
+          { "name": "neon lights", "emoji": "💡" },
+          { "name": "cinematic lighting", "emoji": "🎬" }
+      ],
+      "selected": ["neon lights", "cinematic lighting"]
+    }
+  ]
+}
+
+Rules:
+1. Break down the prompt into logical categories.
+2. 'title' should be the specific aspect (e.g. "Lighting").
+3. 'category' should be a high-level grouping (e.g. "Visuals", "Subject", "Tech", "Style").
+4. Extract the specific terms from the prompt as 'options'.
+5. 'selected' array must contain the exact names of the options found in the prompt.
+6. Choose an appropriate icon from: [${VARIANT_ICONS.join(', ')}].
+7. If 'includeEmojis' is true in user instruction, add emojis.
+`.trim();
+
+export const extractVariantsFromPrompt = async (
+    host: string,
+    apiKey: string,
+    model: string,
+    prompt: string,
+    config: {
+        useEmojis: boolean,
+        maxVariants: number, 
+        extraOptionsCount: number,
+        forceCategory?: string,
+        systemInstruction: string
+    }
+): Promise<Variant[]> => {
+    const client = createClient(host, apiKey);
+
+    // Dynamic instructions based on config
+    const countInstruction = `Limit output to a maximum of ${config.maxVariants} variant groups.`;
+    
+    const emojiInstruction = config.useEmojis 
+        ? "Include relevant emojis for each option." 
+        : "Do NOT include emojis.";
+
+    const categoryInstruction = config.forceCategory && config.forceCategory !== 'Auto'
+        ? `IMPORTANT: You must set the 'category' field for ALL variants to exactly "${config.forceCategory}". Do not invent new categories.`
+        : "Group variants into logical high-level 'category' fields (e.g., Visuals, Subject).";
+
+    const extraOptionsInstruction = config.extraOptionsCount > 0
+        ? `For each variant, after extracting the user's terms, generate ${config.extraOptionsCount} ADDITIONAL creative, relevant, and diverse options that fit the same theme but are NOT in the original prompt. Add them to the 'options' array. Do NOT add them to the 'selected' array.`
+        : "Do not add any extra options beyond what is found in the prompt.";
+
+    const fullSystemPrompt = `
+${config.systemInstruction}
+
+ADDITIONAL INSTRUCTIONS:
+- ${countInstruction}
+- ${emojiInstruction}
+- ${categoryInstruction}
+- ${extraOptionsInstruction}
+
+Return ONLY valid JSON.
+    `.trim();
+
+    try {
+        const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: fullSystemPrompt },
+                { role: "user", content: `Analyze this prompt: "${prompt}"` }
+            ],
+            temperature: 0.7 // Slightly higher temp for creative extra options
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) throw new Error("No content received");
+
+        const cleanJson = content.replace(/```json\n?|```/g, '').trim();
+        const parsed = JSON.parse(cleanJson);
+
+        if (!parsed.variants || !Array.isArray(parsed.variants)) {
+            throw new Error("Invalid JSON structure");
+        }
+
+        return parsed.variants.map((v: any) => ({
+            id: Math.random().toString(36).substring(7),
+            title: v.title,
+            category: config.forceCategory && config.forceCategory !== 'Auto' ? config.forceCategory : (v.category || "General"),
+            options: v.options,
+            // Pre-select the extracted terms so they are active immediately
+            selected: v.selected || [], 
+            customPrompt: "",
+            icon: v.icon || "Sparkles"
+        }));
+
+    } catch (e: any) {
+        console.error("Extract Variants Error:", e);
         throw e;
     }
 };
@@ -133,9 +235,7 @@ export const enhancePrompt = async (
     prompt: string,
     intensity: 'Low' | 'Medium' | 'High'
 ): Promise<string> => {
-    const url = `${host.replace(/\/$/, '')}/chat/completions`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    const client = createClient(host, apiKey);
     
     const intensityPrompt = {
         'Low': "Add subtle details to improve clarity and style. Keep it concise.",
@@ -145,18 +245,50 @@ export const enhancePrompt = async (
 
     const systemPrompt = `You are a prompt engineer. ${intensityPrompt[intensity]} Return ONLY the enhanced prompt text, nothing else.`;
 
-    const body = {
-        model: model,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt }
-        ],
-        temperature: 0.7
-    };
+    try {
+        const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.7
+        });
+        return response.choices[0]?.message?.content?.trim() || prompt;
+    } catch (e) {
+        console.error("Enhance Prompt Error", e);
+        return prompt;
+    }
+};
 
-    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || prompt;
+export const prettifyPrompt = async (
+    host: string,
+    apiKey: string,
+    model: string,
+    prompt: string
+): Promise<string> => {
+    const client = createClient(host, apiKey);
+    
+    const systemPrompt = `You are a prompt formatter. Rewrite the user's prompt to be more structured and readable without changing the meaning.
+Structure the output as follows:
+1. Start with a short, descriptive paragraph summarizing the main subject.
+2. Follow with a list of specific attributes in "Key: Value" format (e.g., Style: Cyberpunk, Lighting: Soft, Camera: 85mm).
+Do NOT add new content. Output ONLY the formatted text.`;
+
+    try {
+        const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.3
+        });
+        return response.choices[0]?.message?.content?.trim() || prompt;
+    } catch (e) {
+        console.error("Prettify Prompt Error", e);
+        throw e;
+    }
 };
 
 export const suggestPrompts = async (
@@ -165,28 +297,27 @@ export const suggestPrompts = async (
     model: string,
     prompt: string
 ): Promise<string[]> => {
-    const url = `${host.replace(/\/$/, '')}/chat/completions`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    const client = createClient(host, apiKey);
     
     const systemPrompt = `Based on the user's concept, generate 3 distinct, creative, and high-quality image generation prompts. Return ONLY a JSON array of strings: ["prompt1", "prompt2", "prompt3"].`;
 
-    const body = {
-        model: model,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt || "A creative masterpiece" }
-        ],
-        temperature: 0.8
-    };
-
-    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
     try {
+        const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: prompt || "A creative masterpiece" }
+            ],
+            temperature: 0.8
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) return [];
+
         const cleanJson = content.replace(/```json\n?|```/g, '').trim();
         return JSON.parse(cleanJson);
-    } catch {
+    } catch (e) {
+        console.error("Suggest Prompts Error", e);
         return [];
     }
 };
@@ -198,28 +329,22 @@ export const modifyPrompt = async (
     currentPrompt: string,
     instruction: string
 ): Promise<string> => {
-    const url = `${host.replace(/\/$/, '')}/chat/completions`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    const client = createClient(host, apiKey);
     
     const systemPrompt = `You are an expert prompt engineer. Your task is to modify the user's image generation prompt based on their specific instruction. Preserve the original style and important elements unless asked to change them. Return ONLY the new prompt text.`;
 
-    const body = {
-        model: model,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Current Prompt: "${currentPrompt}"\n\nInstruction: ${instruction}` }
-        ],
-        temperature: 0.7
-    };
-
     try {
-        const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        if (!response.ok) throw new Error("LLM request failed");
-        const data = await response.json();
-        return data.choices?.[0]?.message?.content?.trim() || currentPrompt;
+        const response = await client.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Current Prompt: "${currentPrompt}"\n\nInstruction: ${instruction}` }
+            ],
+            temperature: 0.7
+        });
+        return response.choices[0]?.message?.content?.trim() || currentPrompt;
     } catch (e) {
-        console.error("Modify prompt error", e);
+        console.error("Modify Prompt Error", e);
         throw e;
     }
 };
@@ -239,24 +364,13 @@ export const extractPromptFromImage = async (
     model: string,
     imageBase64: string,
     userInstruction: string = "",
-    systemInstruction: string = "", // Can override default constraints
-    temperature: number = 0.4, // Default changed to 0.4
+    systemInstruction: string = "", 
+    temperature: number = 0.4, 
     reasoning?: { enabled: boolean; effort: string }
 ): Promise<string> => {
-    // Instantiate OpenAI Client
-    const openai = new OpenAI({
-        baseURL: host.replace(/\/$/, ''),
-        apiKey: apiKey || 'dummy', // SDK requires key, even if not used by backend (e.g. local)
-        dangerouslyAllowBrowser: true,
-        defaultHeaders: {
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'ComfyEz'
-        }
-    });
+    const client = createClient(host, apiKey);
 
     const baseInstruction = userInstruction.trim() || "Describe this image in detail for an image generation prompt. Focus on visual elements, style, lighting, and composition.";
-    
-    // Use custom system instruction if provided, otherwise default strict rules
     const finalConstraints = systemInstruction || DEFAULT_EXTRACT_CONSTRAINTS;
     const finalUserContent = `${baseInstruction}\n\n${finalConstraints}`;
 
@@ -279,7 +393,6 @@ export const extractPromptFromImage = async (
     };
 
     if (reasoning?.enabled) {
-        // Models like o1/o3-mini often don't support temperature
         params.reasoning = {
             effort: reasoning.effort || 'medium'
         };
@@ -288,14 +401,13 @@ export const extractPromptFromImage = async (
     }
 
     try {
-        const response = await openai.chat.completions.create(params);
+        const response = await client.chat.completions.create(params);
         
         const content = response.choices?.[0]?.message?.content;
         
         if (!content) throw new Error("No content received from LLM");
 
         let clean = content.trim();
-        // Post-processing cleanup for markdown/prefixes
         clean = clean.replace(/^```(?:markdown|txt)?\s*/i, '').replace(/\s*```$/, '');
         clean = clean.replace(/^(Here['’]s|Here is) (a|an|the) (detailed )?(description|prompt|breakdown).+?(:|\.)\s*/si, '');
         
@@ -303,7 +415,6 @@ export const extractPromptFromImage = async (
 
     } catch (e: any) {
         console.error("Image Extraction Error:", e);
-        // Better error message handling from OpenAI SDK
         throw new Error(`LLM Error: ${e.message || e}`);
     }
 };

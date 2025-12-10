@@ -11,21 +11,24 @@ export const constructWorkflow = (params: GenerationParams, uploadedImageName?: 
   const { workflow: rawWorkflow, nodeMapping } = params;
 
   // 1. Construct Final Prompt with Variants
-  let finalPrompt = params.prompt;
-  
+  let finalPrompt = "";
+
   if (params.advancedMode) {
-      const variantParts = params.variants
-          .filter(v => v.selected.length > 0 || v.customPrompt)
-          .map(v => {
-              const parts = [];
-              if (v.selected.length > 0) parts.push(`${v.title}: ${v.selected.join(', ')}`);
-              if (v.customPrompt) parts.push(v.customPrompt);
-              return parts.join(', ');
-          });
-      
-      const variantsString = variantParts.join(', ');
-      if (variantsString) finalPrompt += `, ${variantsString}`;
+    const variantParts = params.variants
+      .filter((v) => v.selected.length > 0 || v.customPrompt)
+      .map((v) => {
+        const parts = [];
+        if (v.selected.length > 0)
+          parts.push(`${v.title}: ${v.selected.join(", ")}`);
+        if (v.customPrompt) parts.push(v.customPrompt);
+        return parts.join(", ");
+      });
+
+    const variantsString = variantParts.join(", ");
+    if (variantsString) finalPrompt += `, ${variantsString}\n`;
   }
+  finalPrompt += params.prompt;
+
 
   // 2. Clone Workflow
   const workflow: ComfyWorkflow = JSON.parse(JSON.stringify(rawWorkflow));

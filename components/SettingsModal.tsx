@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, RefreshCw, Download, Upload, Loader2, AlertTriangle } from 'lucide-react';
 import { AppSettings } from '../types';
 import { fetchLLMModels } from '../services/llmService';
+import { useBackup } from '../hooks/useBackup';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -14,6 +15,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const [llmModels, setLlmModels] = useState<{id: string, name?: string}[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const { handleBackup, handleRestore, isBackingUp, isRestoring, backupError } = useBackup();
+  const restoreInputRef = useRef<HTMLInputElement>(null);
 
   const handleFetchModels = async () => {
     setLoadingModels(true);
@@ -35,6 +39,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     });
   };
 
+  const onRestoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          if (confirm("Restoring will overwrite current settings, history, and presets. The page will reload. Continue?")) {
+              handleRestore(file);
+          }
+          e.target.value = ""; // reset
+      }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -48,7 +62,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             </button>
         </div>
         
-        <div className="p-6 space-y-8 overflow-y-auto">
+        <div className="p-6 space-y-8 overflow-y-auto custom-scrollbar">
           {/* ComfyUI Section */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider">ComfyUI Config</h3>
@@ -143,6 +157,50 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                  </div>
              </div>
           </div>
+
+          {/* Backup & Restore Section */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+             <h3 className="text-sm font-semibold text-green-400 uppercase tracking-wider">Data Management</h3>
+             <div className="bg-zinc-950/50 p-4 rounded-lg border border-zinc-800 space-y-3">
+                 <p className="text-xs text-zinc-400">
+                     Export your history, queue, custom workflows, and settings to a ZIP file.
+                 </p>
+                 
+                 {backupError && (
+                     <div className="flex items-center gap-2 p-2 bg-red-900/20 border border-red-900/50 rounded text-red-400 text-xs">
+                         <AlertTriangle size={14} /> {backupError}
+                     </div>
+                 )}
+
+                 <div className="flex gap-3">
+                     <button 
+                        onClick={handleBackup}
+                        disabled={isBackingUp || isRestoring}
+                        className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                     >
+                        {isBackingUp ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        Backup Data
+                     </button>
+                     
+                     <button 
+                        onClick={() => restoreInputRef.current?.click()}
+                        disabled={isBackingUp || isRestoring}
+                        className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                     >
+                         {isRestoring ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                         Restore Data
+                     </button>
+                     <input 
+                        ref={restoreInputRef}
+                        type="file" 
+                        accept=".zip" 
+                        className="hidden" 
+                        onChange={onRestoreFileChange}
+                     />
+                 </div>
+             </div>
+          </div>
+
         </div>
 
         <div className="p-6 border-t border-zinc-800 flex justify-end">

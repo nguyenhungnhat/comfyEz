@@ -1,7 +1,6 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Zap, Settings2, Trash2, List, ToggleLeft, ToggleRight } from 'lucide-react';
-import { GenerationParams, AppSettings, QueueItem } from '../../types';
+import { GenerationParams, AppSettings, QueueItem, Variant } from '../../types';
 import QueuePopover from '../QueuePopover';
 
 // Decoupled Tools
@@ -9,6 +8,8 @@ import { EnhanceTool } from './promptbar/EnhanceTool';
 import { SuggestionsTool } from './promptbar/SuggestionsTool';
 import { ChatTool } from './promptbar/ChatTool';
 import { ExtractTool } from './promptbar/ExtractTool';
+import { PrettifyTool } from './promptbar/PrettifyTool';
+import { ExtractVariantsTool } from './promptbar/ExtractVariantsTool';
 
 interface PromptBarProps {
   isActive: boolean;
@@ -40,6 +41,33 @@ const PromptBar: React.FC<PromptBarProps> = ({
   onClearCanvas
 }) => {
   const [showQueue, setShowQueue] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Persist textarea height with ResizeObserver and Debounce
+  useEffect(() => {
+      const savedHeight = localStorage.getItem('comfy_prompt_height');
+      if (savedHeight && textareaRef.current) {
+          textareaRef.current.style.height = `${savedHeight}px`;
+      }
+
+      let timeoutId: any;
+      const observer = new ResizeObserver(() => {
+          if (textareaRef.current?.style.height) {
+              clearTimeout(timeoutId);
+              timeoutId = setTimeout(() => {
+                  localStorage.setItem('comfy_prompt_height', textareaRef.current!.style.height.replace('px', ''));
+              }, 400);
+          }
+      });
+      
+      if (textareaRef.current) {
+          observer.observe(textareaRef.current);
+      }
+      return () => {
+          observer.disconnect();
+          clearTimeout(timeoutId);
+      };
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -52,6 +80,22 @@ const PromptBar: React.FC<PromptBarProps> = ({
       setParams(prev => ({ ...prev, prompt: newPrompt }));
   };
 
+  const addExtractedVariants = (newVariants: Variant[], clearCategory?: string) => {
+      setParams(prev => {
+          let updatedVariants = [...prev.variants];
+          
+          // If we need to clear a category first (replace mode)
+          if (clearCategory) {
+              updatedVariants = updatedVariants.filter(v => v.category !== clearCategory);
+          }
+
+          return {
+              ...prev,
+              variants: [...updatedVariants, ...newVariants]
+          };
+      });
+  };
+
   return (
     <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 w-full max-w-4xl px-4 z-50 transition-all duration-300 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}>
         <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/50 p-3 rounded-2xl shadow-2xl flex flex-col gap-2 ring-1 ring-black/20 relative">
@@ -59,6 +103,11 @@ const PromptBar: React.FC<PromptBarProps> = ({
           {/* AI Tools Bar */}
           <div className="flex items-center gap-1 border-b border-zinc-800 pb-2 mb-1 px-1">
                <EnhanceTool 
+                   settings={settings} 
+                   currentPrompt={params.prompt} 
+                   onUpdatePrompt={updatePrompt} 
+               />
+               <PrettifyTool 
                    settings={settings} 
                    currentPrompt={params.prompt} 
                    onUpdatePrompt={updatePrompt} 
@@ -86,11 +135,12 @@ const PromptBar: React.FC<PromptBarProps> = ({
 
           <div className="flex items-start gap-2">
             <textarea
+                ref={textareaRef}
                 value={params.prompt}
                 onChange={(e) => setParams(p => ({ ...p, prompt: e.target.value }))}
                 onKeyDown={handleKeyDown}
                 placeholder="Describe your imagination..."
-                className="flex-1 bg-transparent border-none text-zinc-100 placeholder-zinc-500 focus:ring-0 resize-none py-2 px-3 min-h-[80px] text-sm leading-relaxed scrollbar-hide"
+                className="flex-1 bg-transparent border-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-0 resize-y py-2 px-3 min-h-[80px] max-h-[60vh] text-sm leading-relaxed scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent"
             />
             <div className="flex flex-col gap-2">
                  <button
@@ -126,9 +176,17 @@ const PromptBar: React.FC<PromptBarProps> = ({
                  </label>
                  
                  {params.advancedMode && (
-                     <div className="text-xs text-zinc-500 hidden sm:block">
-                        Variants: {params.variants.reduce((acc, v) => acc + v.selected.length, 0)}
-                     </div>
+                     <>
+                        <ExtractVariantsTool 
+                            settings={settings}
+                            currentPrompt={params.prompt}
+                            existingVariants={params.variants}
+                            onAddVariants={addExtractedVariants}
+                        />
+                        <div className="text-xs text-zinc-500 hidden sm:block">
+                            Variants: {params.variants.reduce((acc, v) => acc + v.selected.length, 0)}
+                        </div>
+                     </>
                  )}
              </div>
              

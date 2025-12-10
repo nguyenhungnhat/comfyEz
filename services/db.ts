@@ -100,6 +100,19 @@ export const clearHistoryDB = async () => {
     });
 };
 
+export const restoreHistoryDB = async (items: HistoryItem[]) => {
+    const db = await openDB();
+    return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME_HISTORY], "readwrite");
+        const store = transaction.objectStore(STORE_NAME_HISTORY);
+        store.clear().onsuccess = () => {
+            items.forEach(item => store.put(item));
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+    });
+};
+
 // --- Session (Params) ---
 
 export const saveSessionParams = async (params: GenerationParams) => {
@@ -148,6 +161,11 @@ export const loadQueueDB = async (): Promise<QueueItem[]> => {
     });
 };
 
+export const restoreQueueDB = async (items: QueueItem[]) => {
+    // Queue is stored as a single array under KEY_QUEUE
+    return saveQueueDB(items);
+};
+
 // --- LoRA Metadata ---
 
 export const getAllLorasDB = async (): Promise<Lora[]> => {
@@ -170,5 +188,18 @@ export const updateLoraMetadataDB = async (lora: Lora) => {
         const request = store.put(lora);
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
+    });
+};
+
+export const restoreLorasDB = async (items: Lora[]) => {
+    const db = await openDB();
+    return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME_LORAS], "readwrite");
+        const store = transaction.objectStore(STORE_NAME_LORAS);
+        store.clear().onsuccess = () => {
+            items.forEach(item => store.put(item));
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
     });
 };

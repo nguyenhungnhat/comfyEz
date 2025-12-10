@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { AppSettings, GenerationParams } from '../types';
 import { useRightSidebar, PRESETS, DEFAULT_SYSTEM_PROMPT } from '../hooks/useRightSidebar';
@@ -32,7 +33,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ settings, params, setParams
       handleExport,
       handleImport,
       toggleCollapse,
-      combinedPreview
+      combinedPreview,
+      updateCategory
   } = useRightSidebar(settings, params, setParams);
 
   return (
@@ -74,6 +76,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ settings, params, setParams
             removeVariant={removeVariant}
             toggleOption={toggleOption}
             updateCustomPrompt={updateCustomPrompt}
+            onUpdateCategory={updateCategory}
         />
     </div>
   );

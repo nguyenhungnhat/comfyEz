@@ -25,6 +25,7 @@ export interface Variant {
   selected: string[];
   customPrompt: string;
   icon?: string;
+  category?: string; // High-level grouping (e.g. "Visuals", "Tech")
 }
 
 export interface Lora {

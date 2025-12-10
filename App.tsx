@@ -35,7 +35,8 @@ function App() {
     canvasImages, 
     setCanvasImages,
     setHistory,
-    removeHistoryItem, 
+    removeHistoryItem,
+    clearAllHistory, 
     isProcessing, 
     processingError, 
     addToQueue, 
@@ -151,6 +152,7 @@ function App() {
           history={history}
           setHistory={setHistory}
           onRemoveHistory={removeHistoryItem}
+          onClearHistory={clearAllHistory}
           onSelectHistory={handleSelectHistory}
           settings={settings}
           queue={queue}

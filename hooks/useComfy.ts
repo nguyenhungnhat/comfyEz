@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppSettings, GenerationParams, QueueItem, HistoryItem, CanvasImage } from '../types';
 import { generateClientId, queuePrompt, getHistory, getImageUrl, uploadImage } from '../services/comfyService';
 import { constructWorkflow, dataURLtoFile } from '../utils';
-import { saveHistoryItem, getAllHistory, deleteHistoryItemDB, saveQueueDB, loadQueueDB, updateLoraMetadataDB, getAllLorasDB } from '../services/db';
+import { saveHistoryItem, getAllHistory, deleteHistoryItemDB, saveQueueDB, loadQueueDB, updateLoraMetadataDB, getAllLorasDB, clearHistoryDB } from '../services/db';
 
 export const useComfy = (settings: AppSettings, addToCurrent: boolean) => {
     // --- State ---
@@ -46,6 +46,15 @@ export const useComfy = (settings: AppSettings, addToCurrent: boolean) => {
             setHistory(prev => prev.filter(item => item.id !== id));
         } catch (e) {
             console.error("Failed to delete history item", e);
+        }
+    }, []);
+
+    const clearAllHistory = useCallback(async () => {
+        try {
+            await clearHistoryDB();
+            setHistory([]);
+        } catch (e) {
+            console.error("Failed to clear history", e);
         }
     }, []);
 
@@ -374,6 +383,7 @@ export const useComfy = (settings: AppSettings, addToCurrent: boolean) => {
         setCanvasImages,
         setHistory,
         removeHistoryItem,
+        clearAllHistory,
         isProcessing,
         processingError,
         addToQueue,

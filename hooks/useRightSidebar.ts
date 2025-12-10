@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { AppSettings, GenerationParams, Variant } from '../types';
 import { generateVariants } from '../services/llmService';
@@ -14,6 +15,7 @@ Your task is to generate a JSON object containing variant categories based on th
 
 Each variant should have:
 - 'title': The name of the category (e.g., "Lighting", "Style").
+- 'category': A high-level group name (e.g., "Visuals", "Camera", "Subject").
 - 'options': A list of options. Each option should be an object:
   {
     "name": "option keyword",
@@ -26,7 +28,8 @@ The structure must be strictly JSON:
 {
   "variants": [
     { 
-      "title": "Lighting", 
+      "title": "Lighting",
+      "category": "Visuals",
       "icon": "Sun",
       "options": [
          { "name": "Soft Light", "emoji": "☁️", "description": "Diffused, shadowless light" },
@@ -114,6 +117,15 @@ export const useRightSidebar = (
      }));
   };
 
+  const updateCategory = (variantIds: string[], newCategory: string) => {
+      setParams(prev => ({
+          ...prev,
+          variants: prev.variants.map(v => 
+              variantIds.includes(v.id) ? { ...v, category: newCategory } : v
+          )
+      }));
+  };
+
   const handleExport = () => {
       const dataStr = JSON.stringify(params.variants, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
@@ -182,6 +194,7 @@ export const useRightSidebar = (
       handleExport,
       handleImport,
       toggleCollapse,
-      combinedPreview
+      combinedPreview,
+      updateCategory
   };
 };
